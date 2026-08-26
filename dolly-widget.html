@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hello, Dolly</title>
+    <style>
+      :root {
+        --bg: #16141c;
+        --fg: #f4f0e8;
+        --accent: #d4c4b0;
+        --surface: #1e1b24;
+      }
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 16px;
+      }
+      h1 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+      button {
+        cursor: pointer;
+        border: 0;
+        border-radius: 8px;
+        background: var(--accent);
+        color: #1a1714;
+        font: 600 0.85rem/1 "Segoe UI", system-ui, sans-serif;
+        height: 36px;
+        padding: 0 12px;
+      }
+      button.ghost {
+        background: var(--surface);
+        color: var(--fg);
+      }
+      #stage {
+        position: relative;
+        height: calc(100dvh - 60px);
+        overflow: hidden;
+      }
+      #dolly {
+        position: absolute;
+        left: 42%;
+        top: 12%;
+        width: min(280px, 46vw);
+        cursor: grab;
+        user-select: none;
+        filter: drop-shadow(12px 24px 18px rgb(0 0 0 / 0.4));
+      }
+      #dolly:active { cursor: grabbing; }
+      p.hint {
+        position: absolute;
+        left: 0; right: 0; bottom: 16px;
+        text-align: center;
+        font-size: 0.8rem;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Hello, Dolly</h1>
+      <div>
+        <button class="ghost" id="look" type="button">Switch look</button>
+        <button id="float" type="button">Float on desktop</button>
+      </div>
+    </header>
+    <div id="stage">
+      <img id="dolly" alt="Dolly" draggable="false" />
+      <p class="hint">Drag her. For a real always-on-top widget, use start-widgets.bat.</p>
+    </div>
+    <script>
+      const looks = [
+        "assets/dolly-glam.png",
+        "assets/dolly-dance.png",
+        "assets/dolly-guitar.png",
+      ];
+      let look = 0;
+      const img = document.getElementById("dolly");
+      img.src = looks[0];
+      document.getElementById("look").onclick = () => {
+        look = (look + 1) % looks.length;
+        img.src = looks[look];
+      };
+
+      let drag = null;
+      img.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        const rect = img.getBoundingClientRect();
+        drag = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+        img.setPointerCapture(event.pointerId);
+      });
+      img.addEventListener("pointermove", (event) => {
+        if (!drag) return;
+        const stage = document.getElementById("stage").getBoundingClientRect();
+        img.style.left = event.clientX - stage.left - drag.x + "px";
+        img.style.top = event.clientY - stage.top - drag.y + "px";
+      });
+      img.addEventListener("pointerup", () => { drag = null; });
+
+      document.getElementById("float").onclick = async () => {
+        if (document.pictureInPictureEnabled && img.requestPictureInPicture) {
+          const canvas = document.createElement("canvas");
+          canvas.width = 240; canvas.height = 380;
+          const ctx = canvas.getContext("2d");
+          const tick = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            requestAnimationFrame(tick);
+          };
+          tick();
+          const video = document.createElement("video");
+          video.muted = true;
+          video.playsInline = true;
+          video.srcObject = canvas.captureStream(24);
+          await video.play();
+          try {
+            await video.requestPictureInPicture();
+            return;
+          } catch {}
+        }
+        window.open(location.href, "dolly", "width=280,height=440,menubar=no,toolbar=no");
+      };
+    </script>
+  </body>
+</html>
