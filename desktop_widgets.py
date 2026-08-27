@@ -207,7 +207,7 @@ class FastbackWidget(WidgetWindow):
         if self._play:
             self._photo = self._play[0]
             self.label.configure(image=self._photo)
-        self.after(180, self._tick)
+        self.after(83, self._tick)
 
     def _menu(self, event: tk.Event) -> None:
         menu = tk.Menu(self, tearoff=0)
@@ -220,7 +220,7 @@ class FastbackWidget(WidgetWindow):
         self._frame = (self._frame + 1) % len(self._play)
         self._photo = self._play[self._frame]
         self.label.configure(image=self._photo)
-        self.after(180, self._tick)
+        self.after(83, self._tick)
 
 
 class ClockWidget(WidgetWindow):
