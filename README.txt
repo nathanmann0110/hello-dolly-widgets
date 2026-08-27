@@ -7,11 +7,8 @@ Three frameless always-on-top companions:
   Van       Fusion Transit burning rubber — steers as you drag
 
 VAN STEERING
-  Drag up     rear profile
-  Drag down   front profile
-  Drag left   left profile
-  Drag right  right profile
-When you let go it stays facing that way and keeps burning rubber.
+  16 headings. Drag any direction and the van turns toward it.
+  Let go and it stays facing that way, burning rubber in place.
 
 Clock and sticky notes are gone. This pack is just those three.
 
