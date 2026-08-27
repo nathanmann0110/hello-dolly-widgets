@@ -28,6 +28,7 @@ if sys.platform != "win32":
 
 MAGENTA = "#ff00aa"
 PLAY_DIR = ASSETS / "play"
+FASTBACK_DIR = ASSETS / "fastback"
 STILLS = [
     ASSETS / "dolly-glam.png",
     ASSETS / "dolly-dance.png",
@@ -184,6 +185,44 @@ class DollyWidget(WidgetWindow):
         self.after(120, self._tick)
 
 
+class FastbackWidget(WidgetWindow):
+    key = "fastback"
+
+    def __init__(self, master: tk.Tk, x: int = 80, y: int = 360) -> None:
+        super().__init__(master, x, y)
+        self._frame = 0
+        self._photo = None
+        self._play: list[ImageTk.PhotoImage] = []
+        self.configure(bg=MAGENTA)
+        if sys.platform == "win32":
+            self.wm_attributes("-transparentcolor", MAGENTA)
+        self.label = tk.Label(self, bd=0, highlightthickness=0, bg=MAGENTA)
+        self.label.pack()
+        self.enable_drag(self.label)
+        self.label.bind("<Button-3>", self._menu)
+        self.bind("<Button-3>", self._menu)
+        self.label.bind("<Double-Button-1>", lambda _e: self.destroy())
+        frames = sorted(FASTBACK_DIR.glob("*.png"))
+        self._play = [ImageTk.PhotoImage(Image.open(p).convert("RGB")) for p in frames]
+        if self._play:
+            self._photo = self._play[0]
+            self.label.configure(image=self._photo)
+        self.after(90, self._tick)
+
+    def _menu(self, event: tk.Event) -> None:
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label="Close Fastback", command=self.destroy)
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def _tick(self) -> None:
+        if not self.winfo_exists() or not self._play:
+            return
+        self._frame = (self._frame + 1) % len(self._play)
+        self._photo = self._play[self._frame]
+        self.label.configure(image=self._photo)
+        self.after(90, self._tick)
+
+
 class ClockWidget(WidgetWindow):
     key = "clock"
 
@@ -313,6 +352,7 @@ class Launcher(tk.Tk, DragMixin):
         ).pack(anchor="w")
         for label, fn in (
             ("Dolly", self.spawn_dolly),
+            ("Fastback", self.spawn_fastback),
             ("Clock", self.spawn_clock),
             ("Sticky note", self.spawn_note),
             ("Quote", self.spawn_quote),
@@ -329,11 +369,13 @@ class Launcher(tk.Tk, DragMixin):
         self.enable_drag(bar)
         self.bind("<Escape>", lambda _e: self.destroy())
         self.dolly: DollyWidget | None = None
+        self.fastback: FastbackWidget | None = None
         self._restore()
 
     def _restore(self) -> None:
         data = load_layout()
         self.spawn_dolly()
+        self.spawn_fastback()
         if "clock" in data:
             self.spawn_clock()
         if "note" in data:
@@ -353,6 +395,13 @@ class Launcher(tk.Tk, DragMixin):
         look = int(load_layout().get("dolly", {}).get("look", 0))
         self.dolly = DollyWidget(self, x, y, look)
 
+    def spawn_fastback(self) -> None:
+        if self.fastback is not None and self.fastback.winfo_exists():
+            self.fastback.lift()
+            return
+        x, y = self._pos("fastback", (80, 360))
+        self.fastback = FastbackWidget(self, x, y)
+
     def spawn_clock(self) -> None:
         x, y = self._pos("clock", (40, 120))
         ClockWidget(self, x, y)
@@ -370,6 +419,9 @@ class Launcher(tk.Tk, DragMixin):
 def main() -> None:
     if not PLAY_DIR.exists() or not any(PLAY_DIR.glob("*.png")):
         sys.stderr.write("Missing animated Dolly frames in assets/play/\n")
+        raise SystemExit(1)
+    if not FASTBACK_DIR.exists() or not any(FASTBACK_DIR.glob("*.png")):
+        sys.stderr.write("Missing Fastback frames in assets/fastback/\n")
         raise SystemExit(1)
     app = Launcher()
     app.mainloop()

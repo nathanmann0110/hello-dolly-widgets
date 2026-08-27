@@ -6,13 +6,16 @@ You already have Python and Pillow. You do not need to install anything else.
 RUN THIS
   Double-click  start-widgets.bat
 
-The guitar-playing 3D Dolly appears right away — frameless, always on top.
-Drag her onto any window or any monitor.
+Two companions appear right away — frameless, always on top:
+  Dolly     guitar loop
+  Fastback  dark-green '67 doing donuts with tire smoke
 
-DOLLY CONTROLS
-  Left-drag     move her (any screen)
-  Right-click   Switch look  (guitar loop / glam gown / pink cowgirl)
-  Double-click  close
+Drag either onto any window or any monitor.
+
+CONTROLS
+  Left-drag     move (any screen)
+  Right-click   Dolly: switch look / Fastback: close
+  Double-click  close that widget
   Esc           close that widget
 
 The small HELLO, DOLLY panel can also spawn a clock, sticky note, or quotes.
