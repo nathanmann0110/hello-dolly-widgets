@@ -226,12 +226,16 @@ class FastbackWidget(WidgetWindow):
 
 class VanWidget(WidgetWindow):
     key = "van"
+    FACINGS = ("up", "down", "left", "right")
 
-    def __init__(self, master: tk.Tk, x: int = 80, y: int = 420) -> None:
+    def __init__(self, master: tk.Tk, x: int = 80, y: int = 420, facing: str = "right") -> None:
         super().__init__(master, x, y)
+        self.facing = facing if facing in self.FACINGS else "right"
         self._frame = 0
         self._photo = None
-        self._play: list[ImageTk.PhotoImage] = []
+        self._faces: dict[str, list[ImageTk.PhotoImage]] = {}
+        self._last_x = x
+        self._last_y = y
         self.configure(bg=MAGENTA)
         if sys.platform == "win32":
             self.wm_attributes("-transparentcolor", MAGENTA)
@@ -241,12 +245,53 @@ class VanWidget(WidgetWindow):
         self.label.bind("<Button-3>", self._menu)
         self.bind("<Button-3>", self._menu)
         self.label.bind("<Double-Button-1>", lambda _e: self.destroy())
-        frames = sorted(VAN_DIR.glob("*.png"))
-        self._play = [ImageTk.PhotoImage(Image.open(p).convert("RGB")) for p in frames]
-        if self._play:
-            self._photo = self._play[0]
-            self.label.configure(image=self._photo)
+        for name in self.FACINGS:
+            folder = VAN_DIR / name
+            frames = sorted(folder.glob("*.png"))
+            self._faces[name] = [
+                ImageTk.PhotoImage(Image.open(p).convert("RGB")) for p in frames
+            ]
+        self._paint()
         self.after(83, self._tick)
+
+    def persist_extra(self) -> dict:
+        return {"facing": self.facing}
+
+    def _play(self) -> list[ImageTk.PhotoImage]:
+        return self._faces.get(self.facing) or next(
+            (v for v in self._faces.values() if v), []
+        )
+
+    def _paint(self) -> None:
+        play = self._play()
+        if not play:
+            return
+        self._photo = play[self._frame % len(play)]
+        self.label.configure(image=self._photo)
+
+    def _set_facing(self, facing: str) -> None:
+        if facing == self.facing or facing not in self._faces or not self._faces[facing]:
+            return
+        self.facing = facing
+        self._frame = 0
+        self._paint()
+
+    def _drag_start(self, event: tk.Event) -> None:
+        self._last_x = event.x_root
+        self._last_y = event.y_root
+        super()._drag_start(event)
+
+    def _drag_move(self, event: tk.Event) -> None:
+        dx = event.x_root - self._last_x
+        dy = event.y_root - self._last_y
+        if dx * dx + dy * dy >= 36:
+            if abs(dx) >= abs(dy):
+                self._set_facing("right" if dx > 0 else "left")
+            else:
+                self._set_facing("down" if dy > 0 else "up")
+            self._last_x = event.x_root
+            self._last_y = event.y_root
+        super()._drag_move(event)
 
     def _menu(self, event: tk.Event) -> None:
         menu = tk.Menu(self, tearoff=0)
@@ -254,11 +299,13 @@ class VanWidget(WidgetWindow):
         menu.tk_popup(event.x_root, event.y_root)
 
     def _tick(self) -> None:
-        if not self.winfo_exists() or not self._play:
+        if not self.winfo_exists():
             return
-        self._frame = (self._frame + 1) % len(self._play)
-        self._photo = self._play[self._frame]
-        self.label.configure(image=self._photo)
+        play = self._play()
+        if play:
+            self._frame = (self._frame + 1) % len(play)
+            self._photo = play[self._frame]
+            self.label.configure(image=self._photo)
         self.after(83, self._tick)
 
 
@@ -327,7 +374,8 @@ class Launcher(tk.Tk, DragMixin):
             self.van.lift()
             return
         x, y = self._pos("van", (40, 420))
-        self.van = VanWidget(self, x, y)
+        facing = str(load_layout().get("van", {}).get("facing", "right"))
+        self.van = VanWidget(self, x, y, facing)
         self._raise_dolly()
 
     def _raise_dolly(self) -> None:
@@ -342,8 +390,8 @@ def main() -> None:
     if not FASTBACK_DIR.exists() or not any(FASTBACK_DIR.glob("*.png")):
         sys.stderr.write("Missing Fastback frames in assets/fastback/\n")
         raise SystemExit(1)
-    if not VAN_DIR.exists() or not any(VAN_DIR.glob("*.png")):
-        sys.stderr.write("Missing Van frames in assets/van/\n")
+    if not any((VAN_DIR / name).glob("*.png") for name in ("up", "down", "left", "right")):
+        sys.stderr.write("Missing Van facing frames in assets/van/\n")
         raise SystemExit(1)
     app = Launcher()
     app.mainloop()
