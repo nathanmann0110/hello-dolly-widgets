@@ -126,7 +126,7 @@ class DollyWidget(WidgetWindow):
         self.label.bind("<Double-Button-1>", lambda _e: self.destroy())
         self._load_play()
         self._paint()
-        self.after(120, self._tick)
+        self.after(240, self._tick)
 
     def persist_extra(self) -> dict:
         return {"look": self.look}
@@ -182,7 +182,7 @@ class DollyWidget(WidgetWindow):
                 self._base_y = y
         else:
             self._base_y = self.winfo_y()
-        self.after(120, self._tick)
+        self.after(240, self._tick)
 
 
 class FastbackWidget(WidgetWindow):
@@ -207,7 +207,7 @@ class FastbackWidget(WidgetWindow):
         if self._play:
             self._photo = self._play[0]
             self.label.configure(image=self._photo)
-        self.after(90, self._tick)
+        self.after(180, self._tick)
 
     def _menu(self, event: tk.Event) -> None:
         menu = tk.Menu(self, tearoff=0)
@@ -220,7 +220,7 @@ class FastbackWidget(WidgetWindow):
         self._frame = (self._frame + 1) % len(self._play)
         self._photo = self._play[self._frame]
         self.label.configure(image=self._photo)
-        self.after(90, self._tick)
+        self.after(180, self._tick)
 
 
 class ClockWidget(WidgetWindow):
