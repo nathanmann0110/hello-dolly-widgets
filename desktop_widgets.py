@@ -228,17 +228,16 @@ class VanWidget(WidgetWindow):
     key = "van"
     COUNT = 16
 
-    def __init__(self, master: tk.Tk, x: int = 80, y: int = 420, facing: int = 0) -> None:
+    def __init__(self, master: tk.Tk, x: int = 80, y: int = 420, facing: float = 0) -> None:
         super().__init__(master, x, y)
         try:
-            self.facing = int(facing) % self.COUNT
+            self.facing = float(facing) % self.COUNT
         except Exception:
-            self.facing = 0
+            self.facing = 0.0
         self._frame = 0
         self._photo = None
         self._faces: dict[int, list[ImageTk.PhotoImage]] = {}
-        self._last_x = x
-        self._last_y = y
+        self._trail: list[tuple[float, float]] = []
         self.configure(bg=MAGENTA)
         if sys.platform == "win32":
             self.wm_attributes("-transparentcolor", MAGENTA)
@@ -260,8 +259,11 @@ class VanWidget(WidgetWindow):
     def persist_extra(self) -> dict:
         return {"facing": self.facing}
 
+    def _index(self) -> int:
+        return int(round(self.facing)) % self.COUNT
+
     def _play(self) -> list[ImageTk.PhotoImage]:
-        return self._faces.get(self.facing) or next(
+        return self._faces.get(self._index()) or next(
             (v for v in self._faces.values() if v), []
         )
 
@@ -272,27 +274,63 @@ class VanWidget(WidgetWindow):
         self._photo = play[self._frame % len(play)]
         self.label.configure(image=self._photo)
 
-    def _set_facing(self, facing: int) -> None:
-        facing = facing % self.COUNT
-        if facing == self.facing or not self._faces.get(facing):
-            return
-        self.facing = facing
-        self._frame = 0
+    def _set_heading(self, heading: float) -> None:
+        heading = heading % self.COUNT
+        if heading < 0:
+            heading += self.COUNT
+        prev = self._index()
+        self.facing = heading
+        if self._index() != prev:
+            self._frame = 0
         self._paint()
 
+    def _heading_from_trail(self) -> float | None:
+        pts = self._trail
+        if len(pts) < 2:
+            return None
+        if len(pts) < 4:
+            dx = pts[-1][0] - pts[-2][0]
+            dy = pts[-1][1] - pts[-2][1]
+        else:
+            p0, p1, p2, p3 = pts[-4:]
+            t = 1.0
+            t2 = t * t
+            dx = 0.5 * (
+                (-p0[0] + p2[0])
+                + (4 * p0[0] - 10 * p1[0] + 8 * p2[0] - 2 * p3[0]) * t
+                + (-3 * p0[0] + 9 * p1[0] - 9 * p2[0] + 3 * p3[0]) * t2
+            )
+            dy = 0.5 * (
+                (-p0[1] + p2[1])
+                + (4 * p0[1] - 10 * p1[1] + 8 * p2[1] - 2 * p3[1]) * t
+                + (-3 * p0[1] + 9 * p1[1] - 9 * p2[1] + 3 * p3[1]) * t2
+            )
+        if dx * dx + dy * dy < 9:
+            return None
+        h = math.atan2(dy, dx) / (math.pi / 8)
+        if h < 0:
+            h += self.COUNT
+        return h
+
     def _drag_start(self, event: tk.Event) -> None:
-        self._last_x = event.x_root
-        self._last_y = event.y_root
+        self._trail = [(event.x_root, event.y_root)]
         super()._drag_start(event)
 
     def _drag_move(self, event: tk.Event) -> None:
-        dx = event.x_root - self._last_x
-        dy = event.y_root - self._last_y
-        if dx * dx + dy * dy >= 16:
-            idx = int(round(math.atan2(dy, dx) / (math.pi / 8))) % self.COUNT
-            self._set_facing(idx)
-            self._last_x = event.x_root
-            self._last_y = event.y_root
+        pt = (float(event.x_root), float(event.y_root))
+        if self._trail:
+            lx, ly = self._trail[-1]
+            if (pt[0] - lx) ** 2 + (pt[1] - ly) ** 2 >= 36:
+                self._trail.append(pt)
+                if len(self._trail) > 14:
+                    self._trail.pop(0)
+            else:
+                self._trail[-1] = pt
+        else:
+            self._trail.append(pt)
+        heading = self._heading_from_trail()
+        if heading is not None:
+            self._set_heading(heading)
         super()._drag_move(event)
 
     def _menu(self, event: tk.Event) -> None:
