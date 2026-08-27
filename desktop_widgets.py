@@ -375,7 +375,7 @@ class Launcher(tk.Tk, DragMixin):
     def _restore(self) -> None:
         data = load_layout()
         self.spawn_dolly()
-        self.spawn_fastback()
+        self.after(80, self.spawn_fastback)
         if "clock" in data:
             self.spawn_clock()
         if "note" in data:
@@ -391,7 +391,7 @@ class Launcher(tk.Tk, DragMixin):
         if self.dolly is not None and self.dolly.winfo_exists():
             self.dolly.lift()
             return
-        x, y = self._pos("dolly", (240, 80))
+        x, y = self._pos("dolly", (280, 70))
         look = int(load_layout().get("dolly", {}).get("look", 0))
         self.dolly = DollyWidget(self, x, y, look)
 
@@ -399,8 +399,13 @@ class Launcher(tk.Tk, DragMixin):
         if self.fastback is not None and self.fastback.winfo_exists():
             self.fastback.lift()
             return
-        x, y = self._pos("fastback", (80, 360))
+        x, y = self._pos("fastback", (720, 380))
         self.fastback = FastbackWidget(self, x, y)
+        self._raise_dolly()
+
+    def _raise_dolly(self) -> None:
+        if self.dolly is not None and self.dolly.winfo_exists():
+            self.dolly.lift()
 
     def spawn_clock(self) -> None:
         x, y = self._pos("clock", (40, 120))
