@@ -3,13 +3,12 @@ Hello, Dolly — desktop companions
 
 Three frameless always-on-top companions:
   Dolly     guitar loop
-  Fastback  black '67 — slow 360 donut, 30fps, headlights, gray rear smoke
+  Fastback  black '67 — 30fps donut, lights, gray rear smoke
   Van       Fusion Transit — same
-
-Vehicles are locked at the large (former x2) size.
 
 RUN THIS
   Double-click  start-widgets.bat
+  (needs Python 3 + Pillow)
 
 CONTROLS
   Left-drag     move (any screen)

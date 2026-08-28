@@ -196,7 +196,11 @@ class ZoomSpinWidget(WidgetWindow):
         super().__init__(master, x, y)
         self._frame = 0
         self._photo = None
-        self._pil: list[Image.Image] = []
+        self._paths = sorted(p for p in self.folder.glob("*.png") if p.parent == self.folder)
+        self._nw, self._nh = (960, 600)
+        if self._paths:
+            with Image.open(self._paths[0]) as im:
+                self._nw, self._nh = im.size
         self.configure(bg=MAGENTA)
         if sys.platform == "win32":
             self.wm_attributes("-transparentcolor", MAGENTA)
@@ -206,24 +210,24 @@ class ZoomSpinWidget(WidgetWindow):
         self.label.bind("<Button-3>", self._menu)
         self.bind("<Button-3>", self._menu)
         self.label.bind("<Double-Button-1>", lambda _e: self.destroy())
-        frames = sorted(p for p in self.folder.glob("*.png") if p.parent == self.folder)
-        self._pil = [Image.open(p).convert("RGB") for p in frames]
         self._show()
         self.after(self.tick_ms, self._tick)
 
     def _display_size(self) -> tuple[int, int]:
-        if not self._pil:
-            return 1, 1
-        w, h = self._pil[0].size
-        return max(1, round(w * self.display_scale)), max(1, round(h * self.display_scale))
+        return (
+            max(1, round(self._nw * self.display_scale)),
+            max(1, round(self._nh * self.display_scale)),
+        )
 
     def _show(self) -> None:
-        if not self._pil:
+        if not self._paths:
             return
-        im = self._pil[self._frame % len(self._pil)]
+        path = self._paths[self._frame % len(self._paths)]
+        with Image.open(path) as src:
+            im = src.convert("RGB")
         size = self._display_size()
         if im.size != size:
-            im = im.resize(size, Image.Resampling.LANCZOS)
+            im = im.resize(size, Image.Resampling.BILINEAR)
         self._photo = ImageTk.PhotoImage(im)
         self.label.configure(image=self._photo)
 
@@ -233,9 +237,9 @@ class ZoomSpinWidget(WidgetWindow):
         menu.tk_popup(event.x_root, event.y_root)
 
     def _tick(self) -> None:
-        if not self.winfo_exists() or not self._pil:
+        if not self.winfo_exists() or not self._paths:
             return
-        self._frame = (self._frame + 1) % len(self._pil)
+        self._frame = (self._frame + 1) % len(self._paths)
         self._show()
         self.after(self.tick_ms, self._tick)
 
@@ -340,4 +344,12 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        try:
+            input("Press Enter to close...")
+        except Exception:
+            pass
