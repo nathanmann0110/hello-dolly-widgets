@@ -186,80 +186,87 @@ class DollyWidget(WidgetWindow):
         self.after(240, self._tick)
 
 
-class FastbackWidget(WidgetWindow):
+class ZoomSpinWidget(WidgetWindow):
+    folder: Path = FASTBACK_DIR
+    close_label = "Close"
+    tick_ms = 42
+    x1_scale = 2.0
+
+    def __init__(self, master: tk.Tk, x: int = 80, y: int = 360, zoom: int = 1) -> None:
+        super().__init__(master, x, y)
+        self.zoom = zoom if zoom in (1, 2, 3) else 1
+        self._frame = 0
+        self._photo = None
+        self._pil: list[Image.Image] = []
+        self.configure(bg=MAGENTA)
+        if sys.platform == "win32":
+            self.wm_attributes("-transparentcolor", MAGENTA)
+        self.label = tk.Label(self, bd=0, highlightthickness=0, bg=MAGENTA)
+        self.label.pack()
+        self.enable_drag(self.label)
+        self.label.bind("<Button-3>", self._menu)
+        self.bind("<Button-3>", self._menu)
+        self.label.bind("<Double-Button-1>", lambda _e: self.destroy())
+        frames = sorted(p for p in self.folder.glob("*.png") if p.parent == self.folder)
+        self._pil = [Image.open(p).convert("RGB") for p in frames]
+        self._show()
+        self.after(self.tick_ms, self._tick)
+
+    def persist_extra(self) -> dict:
+        return {"zoom": self.zoom}
+
+    def _set_zoom(self, zoom: int) -> None:
+        self.zoom = zoom
+        self._show()
+        self.persist()
+
+    def _display_size(self) -> tuple[int, int]:
+        if not self._pil:
+            return 1, 1
+        w, h = self._pil[0].size
+        scale = self.x1_scale * self.zoom
+        return max(1, round(w * scale)), max(1, round(h * scale))
+
+    def _show(self) -> None:
+        if not self._pil:
+            return
+        im = self._pil[self._frame % len(self._pil)]
+        size = self._display_size()
+        if im.size != size:
+            im = im.resize(size, Image.Resampling.BILINEAR)
+        self._photo = ImageTk.PhotoImage(im)
+        self.label.configure(image=self._photo)
+
+    def _menu(self, event: tk.Event) -> None:
+        menu = tk.Menu(self, tearoff=0)
+        for zoom in (1, 2, 3):
+            mark = "  ✓" if zoom == self.zoom else ""
+            menu.add_command(
+                label=f"x{zoom}{mark}",
+                command=lambda z=zoom: self._set_zoom(z),
+            )
+        menu.add_separator()
+        menu.add_command(label=self.close_label, command=self.destroy)
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def _tick(self) -> None:
+        if not self.winfo_exists() or not self._pil:
+            return
+        self._frame = (self._frame + 1) % len(self._pil)
+        self._show()
+        self.after(self.tick_ms, self._tick)
+
+
+class FastbackWidget(ZoomSpinWidget):
     key = "fastback"
-
-    def __init__(self, master: tk.Tk, x: int = 80, y: int = 360) -> None:
-        super().__init__(master, x, y)
-        self._frame = 0
-        self._photo = None
-        self._play: list[ImageTk.PhotoImage] = []
-        self.configure(bg=MAGENTA)
-        if sys.platform == "win32":
-            self.wm_attributes("-transparentcolor", MAGENTA)
-        self.label = tk.Label(self, bd=0, highlightthickness=0, bg=MAGENTA)
-        self.label.pack()
-        self.enable_drag(self.label)
-        self.label.bind("<Button-3>", self._menu)
-        self.bind("<Button-3>", self._menu)
-        self.label.bind("<Double-Button-1>", lambda _e: self.destroy())
-        frames = sorted(FASTBACK_DIR.glob("*.png"))
-        self._play = [ImageTk.PhotoImage(Image.open(p).convert("RGB")) for p in frames]
-        if self._play:
-            self._photo = self._play[0]
-            self.label.configure(image=self._photo)
-        self.after(42, self._tick)
-
-    def _menu(self, event: tk.Event) -> None:
-        menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label="Close Fastback", command=self.destroy)
-        menu.tk_popup(event.x_root, event.y_root)
-
-    def _tick(self) -> None:
-        if not self.winfo_exists() or not self._play:
-            return
-        self._frame = (self._frame + 1) % len(self._play)
-        self._photo = self._play[self._frame]
-        self.label.configure(image=self._photo)
-        self.after(42, self._tick)
+    folder = FASTBACK_DIR
+    close_label = "Close Fastback"
 
 
-class VanWidget(WidgetWindow):
+class VanWidget(ZoomSpinWidget):
     key = "van"
-
-    def __init__(self, master: tk.Tk, x: int = 80, y: int = 420) -> None:
-        super().__init__(master, x, y)
-        self._frame = 0
-        self._photo = None
-        self._play: list[ImageTk.PhotoImage] = []
-        self.configure(bg=MAGENTA)
-        if sys.platform == "win32":
-            self.wm_attributes("-transparentcolor", MAGENTA)
-        self.label = tk.Label(self, bd=0, highlightthickness=0, bg=MAGENTA)
-        self.label.pack()
-        self.enable_drag(self.label)
-        self.label.bind("<Button-3>", self._menu)
-        self.bind("<Button-3>", self._menu)
-        self.label.bind("<Double-Button-1>", lambda _e: self.destroy())
-        frames = sorted(p for p in VAN_DIR.glob("*.png") if p.parent == VAN_DIR)
-        self._play = [ImageTk.PhotoImage(Image.open(p).convert("RGB")) for p in frames]
-        if self._play:
-            self._photo = self._play[0]
-            self.label.configure(image=self._photo)
-        self.after(42, self._tick)
-
-    def _menu(self, event: tk.Event) -> None:
-        menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label="Close Van", command=self.destroy)
-        menu.tk_popup(event.x_root, event.y_root)
-
-    def _tick(self) -> None:
-        if not self.winfo_exists() or not self._play:
-            return
-        self._frame = (self._frame + 1) % len(self._play)
-        self._photo = self._play[self._frame]
-        self.label.configure(image=self._photo)
-        self.after(42, self._tick)
+    folder = VAN_DIR
+    close_label = "Close Van"
 
 
 class Launcher(tk.Tk, DragMixin):
@@ -319,7 +326,7 @@ class Launcher(tk.Tk, DragMixin):
             self.fastback.lift()
             return
         x, y = self._pos("fastback", (720, 380))
-        self.fastback = FastbackWidget(self, x, y)
+        self.fastback = FastbackWidget(self, x, y, self._zoom("fastback"))
         self._raise_dolly()
 
     def spawn_van(self) -> None:
@@ -327,8 +334,15 @@ class Launcher(tk.Tk, DragMixin):
             self.van.lift()
             return
         x, y = self._pos("van", (40, 420))
-        self.van = VanWidget(self, x, y)
+        self.van = VanWidget(self, x, y, self._zoom("van"))
         self._raise_dolly()
+
+    def _zoom(self, key: str) -> int:
+        try:
+            zoom = int(load_layout().get(key, {}).get("zoom", 1))
+        except Exception:
+            zoom = 1
+        return zoom if zoom in (1, 2, 3) else 1
 
     def _raise_dolly(self) -> None:
         if self.dolly is not None and self.dolly.winfo_exists():
