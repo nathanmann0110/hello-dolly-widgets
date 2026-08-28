@@ -208,7 +208,7 @@ class FastbackWidget(WidgetWindow):
         if self._play:
             self._photo = self._play[0]
             self.label.configure(image=self._photo)
-        self.after(83, self._tick)
+        self.after(42, self._tick)
 
     def _menu(self, event: tk.Event) -> None:
         menu = tk.Menu(self, tearoff=0)
@@ -221,23 +221,17 @@ class FastbackWidget(WidgetWindow):
         self._frame = (self._frame + 1) % len(self._play)
         self._photo = self._play[self._frame]
         self.label.configure(image=self._photo)
-        self.after(83, self._tick)
+        self.after(42, self._tick)
 
 
 class VanWidget(WidgetWindow):
     key = "van"
-    COUNT = 16
 
-    def __init__(self, master: tk.Tk, x: int = 80, y: int = 420, facing: float = 0) -> None:
+    def __init__(self, master: tk.Tk, x: int = 80, y: int = 420) -> None:
         super().__init__(master, x, y)
-        try:
-            self.facing = float(facing) % self.COUNT
-        except Exception:
-            self.facing = 0.0
         self._frame = 0
         self._photo = None
-        self._faces: dict[int, list[ImageTk.PhotoImage]] = {}
-        self._trail: list[tuple[float, float]] = []
+        self._play: list[ImageTk.PhotoImage] = []
         self.configure(bg=MAGENTA)
         if sys.platform == "win32":
             self.wm_attributes("-transparentcolor", MAGENTA)
@@ -247,91 +241,12 @@ class VanWidget(WidgetWindow):
         self.label.bind("<Button-3>", self._menu)
         self.bind("<Button-3>", self._menu)
         self.label.bind("<Double-Button-1>", lambda _e: self.destroy())
-        for i in range(self.COUNT):
-            folder = VAN_DIR / f"{i:02d}"
-            frames = sorted(folder.glob("*.png"))
-            self._faces[i] = [
-                ImageTk.PhotoImage(Image.open(p).convert("RGB")) for p in frames
-            ]
-        self._paint()
-        self.after(83, self._tick)
-
-    def persist_extra(self) -> dict:
-        return {"facing": self.facing}
-
-    def _index(self) -> int:
-        return int(round(self.facing)) % self.COUNT
-
-    def _play(self) -> list[ImageTk.PhotoImage]:
-        return self._faces.get(self._index()) or next(
-            (v for v in self._faces.values() if v), []
-        )
-
-    def _paint(self) -> None:
-        play = self._play()
-        if not play:
-            return
-        self._photo = play[self._frame % len(play)]
-        self.label.configure(image=self._photo)
-
-    def _set_heading(self, heading: float) -> None:
-        heading = heading % self.COUNT
-        if heading < 0:
-            heading += self.COUNT
-        prev = self._index()
-        self.facing = heading
-        if self._index() != prev:
-            self._frame = 0
-        self._paint()
-
-    def _heading_from_trail(self) -> float | None:
-        pts = self._trail
-        if len(pts) < 2:
-            return None
-        if len(pts) < 4:
-            dx = pts[-1][0] - pts[-2][0]
-            dy = pts[-1][1] - pts[-2][1]
-        else:
-            p0, p1, p2, p3 = pts[-4:]
-            t = 1.0
-            t2 = t * t
-            dx = 0.5 * (
-                (-p0[0] + p2[0])
-                + (4 * p0[0] - 10 * p1[0] + 8 * p2[0] - 2 * p3[0]) * t
-                + (-3 * p0[0] + 9 * p1[0] - 9 * p2[0] + 3 * p3[0]) * t2
-            )
-            dy = 0.5 * (
-                (-p0[1] + p2[1])
-                + (4 * p0[1] - 10 * p1[1] + 8 * p2[1] - 2 * p3[1]) * t
-                + (-3 * p0[1] + 9 * p1[1] - 9 * p2[1] + 3 * p3[1]) * t2
-            )
-        if dx * dx + dy * dy < 9:
-            return None
-        h = math.atan2(dy, dx) / (math.pi / 8)
-        if h < 0:
-            h += self.COUNT
-        return h
-
-    def _drag_start(self, event: tk.Event) -> None:
-        self._trail = [(event.x_root, event.y_root)]
-        super()._drag_start(event)
-
-    def _drag_move(self, event: tk.Event) -> None:
-        pt = (float(event.x_root), float(event.y_root))
-        if self._trail:
-            lx, ly = self._trail[-1]
-            if (pt[0] - lx) ** 2 + (pt[1] - ly) ** 2 >= 36:
-                self._trail.append(pt)
-                if len(self._trail) > 14:
-                    self._trail.pop(0)
-            else:
-                self._trail[-1] = pt
-        else:
-            self._trail.append(pt)
-        heading = self._heading_from_trail()
-        if heading is not None:
-            self._set_heading(heading)
-        super()._drag_move(event)
+        frames = sorted(p for p in VAN_DIR.glob("*.png") if p.parent == VAN_DIR)
+        self._play = [ImageTk.PhotoImage(Image.open(p).convert("RGB")) for p in frames]
+        if self._play:
+            self._photo = self._play[0]
+            self.label.configure(image=self._photo)
+        self.after(42, self._tick)
 
     def _menu(self, event: tk.Event) -> None:
         menu = tk.Menu(self, tearoff=0)
@@ -339,14 +254,12 @@ class VanWidget(WidgetWindow):
         menu.tk_popup(event.x_root, event.y_root)
 
     def _tick(self) -> None:
-        if not self.winfo_exists():
+        if not self.winfo_exists() or not self._play:
             return
-        play = self._play()
-        if play:
-            self._frame = (self._frame + 1) % len(play)
-            self._photo = play[self._frame]
-            self.label.configure(image=self._photo)
-        self.after(83, self._tick)
+        self._frame = (self._frame + 1) % len(self._play)
+        self._photo = self._play[self._frame]
+        self.label.configure(image=self._photo)
+        self.after(42, self._tick)
 
 
 class Launcher(tk.Tk, DragMixin):
@@ -414,12 +327,7 @@ class Launcher(tk.Tk, DragMixin):
             self.van.lift()
             return
         x, y = self._pos("van", (40, 420))
-        facing_raw = load_layout().get("van", {}).get("facing", 0)
-        try:
-            facing = int(facing_raw)
-        except Exception:
-            facing = {"right": 0, "down": 4, "left": 8, "up": 12}.get(str(facing_raw), 0)
-        self.van = VanWidget(self, x, y, facing)
+        self.van = VanWidget(self, x, y)
         self._raise_dolly()
 
     def _raise_dolly(self) -> None:
@@ -434,8 +342,8 @@ def main() -> None:
     if not FASTBACK_DIR.exists() or not any(FASTBACK_DIR.glob("*.png")):
         sys.stderr.write("Missing Fastback frames in assets/fastback/\n")
         raise SystemExit(1)
-    if not any((VAN_DIR / f"{i:02d}").glob("*.png") for i in range(16)):
-        sys.stderr.write("Missing Van facing frames in assets/van/\n")
+    if not VAN_DIR.exists() or not any(VAN_DIR.glob("*.png")):
+        sys.stderr.write("Missing Van frames in assets/van/\n")
         raise SystemExit(1)
     app = Launcher()
     app.mainloop()
