@@ -27,7 +27,7 @@ if sys.platform != "win32":
     STORE = ROOT / "layout-v15.json"
 
 MAGENTA = "#ff00aa"
-GREEN = "#00ff00"
+BLACK = "#000000"
 PLAY_DIR = ASSETS / "play"
 FASTBACK_DIR = ASSETS / "fastback"
 VAN_DIR = ASSETS / "van"
@@ -192,7 +192,7 @@ class ZoomSpinWidget(WidgetWindow):
     close_label = "Close"
     tick_ms = 33
     display_scale = 1.25
-    chroma = MAGENTA
+    chroma = BLACK
 
     def __init__(self, master: tk.Tk, x: int = 80, y: int = 360) -> None:
         super().__init__(master, x, y)
@@ -257,7 +257,6 @@ class VanWidget(ZoomSpinWidget):
     key = "van"
     folder = VAN_DIR
     close_label = "Close Van"
-    chroma = GREEN
 
 
 class Launcher(tk.Tk, DragMixin):
