@@ -1,14 +1,11 @@
 Hello, Dolly — desktop companions
 =================================
 
-Three frameless always-on-top companions:
-  Dolly     guitar loop
-  Fastback  black '67 — 30fps donut, lights, gray rear smoke
-  Van       Fusion Transit — same
+After start-widgets.bat:
+  A small HELLO, DOLLY bar appears
+  Dolly, Fastback, and Van float on the desktop (not inside that bar)
 
-RUN THIS
-  Double-click  start-widgets.bat
-  (needs Python 3 + Pillow)
+If you only see the bar, click Dolly / Fastback / Van on it.
 
 CONTROLS
   Left-drag     move (any screen)

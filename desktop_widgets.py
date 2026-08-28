@@ -22,9 +22,9 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parent
 ASSETS = ROOT / "assets"
-STORE = Path.home() / "AppData" / "Local" / "HelloDolly" / "layout.json"
+STORE = Path.home() / "AppData" / "Local" / "HelloDolly" / "layout-v15.json"
 if sys.platform != "win32":
-    STORE = ROOT / "layout.json"
+    STORE = ROOT / "layout-v15.json"
 
 MAGENTA = "#ff00aa"
 PLAY_DIR = ASSETS / "play"
@@ -190,7 +190,7 @@ class ZoomSpinWidget(WidgetWindow):
     folder: Path = FASTBACK_DIR
     close_label = "Close"
     tick_ms = 33
-    display_scale = 3.0
+    display_scale = 1.25
 
     def __init__(self, master: tk.Tk, x: int = 80, y: int = 360) -> None:
         super().__init__(master, x, y)
@@ -298,13 +298,23 @@ class Launcher(tk.Tk, DragMixin):
 
     def _pos(self, key: str, default: tuple[int, int]) -> tuple[int, int]:
         item = load_layout().get(key) or {}
-        return int(item.get("x", default[0])), int(item.get("y", default[1]))
+        try:
+            x = int(item.get("x", default[0]))
+            y = int(item.get("y", default[1]))
+        except Exception:
+            x, y = default
+        try:
+            sw = max(320, self.winfo_screenwidth())
+            sh = max(240, self.winfo_screenheight())
+        except Exception:
+            sw, sh = 1920, 1080
+        return max(0, min(x, sw - 120)), max(0, min(y, sh - 120))
 
     def spawn_dolly(self) -> None:
         if self.dolly is not None and self.dolly.winfo_exists():
             self.dolly.lift()
             return
-        x, y = self._pos("dolly", (280, 70))
+        x, y = self._pos("dolly", (200, 80))
         look = int(load_layout().get("dolly", {}).get("look", 0))
         self.dolly = DollyWidget(self, x, y, look)
 
@@ -312,7 +322,7 @@ class Launcher(tk.Tk, DragMixin):
         if self.fastback is not None and self.fastback.winfo_exists():
             self.fastback.lift()
             return
-        x, y = self._pos("fastback", (720, 380))
+        x, y = self._pos("fastback", (480, 220))
         self.fastback = FastbackWidget(self, x, y)
         self._raise_dolly()
 
@@ -320,7 +330,7 @@ class Launcher(tk.Tk, DragMixin):
         if self.van is not None and self.van.winfo_exists():
             self.van.lift()
             return
-        x, y = self._pos("van", (40, 420))
+        x, y = self._pos("van", (60, 360))
         self.van = VanWidget(self, x, y)
         self._raise_dolly()
 
