@@ -191,7 +191,7 @@ class ZoomSpinWidget(WidgetWindow):
     folder: Path = FASTBACK_DIR
     close_label = "Close"
     tick_ms = 33
-    display_scale = 0.875
+    display_scale = 0.7
     chroma = BLACK
 
     def __init__(self, master: tk.Tk, x: int = 80, y: int = 360) -> None:
