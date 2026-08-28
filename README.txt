@@ -3,16 +3,16 @@ Hello, Dolly — desktop companions
 
 Three frameless always-on-top companions:
   Dolly     guitar loop
-  Fastback  black '67 — slow 360 donut, lights, electric rear smoke
-  Van       Fusion Transit — same slow 360
+  Fastback  black '67 — slow 360 donut, 30fps, headlights, gray rear smoke
+  Van       Fusion Transit — same
 
-x1 is twice the old size. Right-click Fastback or Van for x1 / x2 / x3.
+Vehicles are locked at the large (former x2) size.
 
 RUN THIS
   Double-click  start-widgets.bat
 
 CONTROLS
   Left-drag     move (any screen)
-  Right-click   x1 / x2 / x3 size, then close
+  Right-click   close that companion
   Double-click  close
   Esc           close

@@ -189,12 +189,11 @@ class DollyWidget(WidgetWindow):
 class ZoomSpinWidget(WidgetWindow):
     folder: Path = FASTBACK_DIR
     close_label = "Close"
-    tick_ms = 42
-    x1_scale = 2.0
+    tick_ms = 33
+    display_scale = 3.0
 
-    def __init__(self, master: tk.Tk, x: int = 80, y: int = 360, zoom: int = 1) -> None:
+    def __init__(self, master: tk.Tk, x: int = 80, y: int = 360) -> None:
         super().__init__(master, x, y)
-        self.zoom = zoom if zoom in (1, 2, 3) else 1
         self._frame = 0
         self._photo = None
         self._pil: list[Image.Image] = []
@@ -212,20 +211,11 @@ class ZoomSpinWidget(WidgetWindow):
         self._show()
         self.after(self.tick_ms, self._tick)
 
-    def persist_extra(self) -> dict:
-        return {"zoom": self.zoom}
-
-    def _set_zoom(self, zoom: int) -> None:
-        self.zoom = zoom
-        self._show()
-        self.persist()
-
     def _display_size(self) -> tuple[int, int]:
         if not self._pil:
             return 1, 1
         w, h = self._pil[0].size
-        scale = self.x1_scale * self.zoom
-        return max(1, round(w * scale)), max(1, round(h * scale))
+        return max(1, round(w * self.display_scale)), max(1, round(h * self.display_scale))
 
     def _show(self) -> None:
         if not self._pil:
@@ -233,19 +223,12 @@ class ZoomSpinWidget(WidgetWindow):
         im = self._pil[self._frame % len(self._pil)]
         size = self._display_size()
         if im.size != size:
-            im = im.resize(size, Image.Resampling.BILINEAR)
+            im = im.resize(size, Image.Resampling.LANCZOS)
         self._photo = ImageTk.PhotoImage(im)
         self.label.configure(image=self._photo)
 
     def _menu(self, event: tk.Event) -> None:
         menu = tk.Menu(self, tearoff=0)
-        for zoom in (1, 2, 3):
-            mark = "  ✓" if zoom == self.zoom else ""
-            menu.add_command(
-                label=f"x{zoom}{mark}",
-                command=lambda z=zoom: self._set_zoom(z),
-            )
-        menu.add_separator()
         menu.add_command(label=self.close_label, command=self.destroy)
         menu.tk_popup(event.x_root, event.y_root)
 
@@ -326,7 +309,7 @@ class Launcher(tk.Tk, DragMixin):
             self.fastback.lift()
             return
         x, y = self._pos("fastback", (720, 380))
-        self.fastback = FastbackWidget(self, x, y, self._zoom("fastback"))
+        self.fastback = FastbackWidget(self, x, y)
         self._raise_dolly()
 
     def spawn_van(self) -> None:
@@ -334,15 +317,8 @@ class Launcher(tk.Tk, DragMixin):
             self.van.lift()
             return
         x, y = self._pos("van", (40, 420))
-        self.van = VanWidget(self, x, y, self._zoom("van"))
+        self.van = VanWidget(self, x, y)
         self._raise_dolly()
-
-    def _zoom(self, key: str) -> int:
-        try:
-            zoom = int(load_layout().get(key, {}).get("zoom", 1))
-        except Exception:
-            zoom = 1
-        return zoom if zoom in (1, 2, 3) else 1
 
     def _raise_dolly(self) -> None:
         if self.dolly is not None and self.dolly.winfo_exists():
