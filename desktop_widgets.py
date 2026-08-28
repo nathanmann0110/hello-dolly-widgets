@@ -27,6 +27,7 @@ if sys.platform != "win32":
     STORE = ROOT / "layout-v15.json"
 
 MAGENTA = "#ff00aa"
+GREEN = "#00ff00"
 PLAY_DIR = ASSETS / "play"
 FASTBACK_DIR = ASSETS / "fastback"
 VAN_DIR = ASSETS / "van"
@@ -191,6 +192,7 @@ class ZoomSpinWidget(WidgetWindow):
     close_label = "Close"
     tick_ms = 33
     display_scale = 1.25
+    chroma = MAGENTA
 
     def __init__(self, master: tk.Tk, x: int = 80, y: int = 360) -> None:
         super().__init__(master, x, y)
@@ -201,10 +203,11 @@ class ZoomSpinWidget(WidgetWindow):
         if self._paths:
             with Image.open(self._paths[0]) as im:
                 self._nw, self._nh = im.size
-        self.configure(bg=MAGENTA)
+        key = self.chroma
+        self.configure(bg=key)
         if sys.platform == "win32":
-            self.wm_attributes("-transparentcolor", MAGENTA)
-        self.label = tk.Label(self, bd=0, highlightthickness=0, bg=MAGENTA)
+            self.wm_attributes("-transparentcolor", key)
+        self.label = tk.Label(self, bd=0, highlightthickness=0, bg=key)
         self.label.pack()
         self.enable_drag(self.label)
         self.label.bind("<Button-3>", self._menu)
@@ -254,6 +257,7 @@ class VanWidget(ZoomSpinWidget):
     key = "van"
     folder = VAN_DIR
     close_label = "Close Van"
+    chroma = GREEN
 
 
 class Launcher(tk.Tk, DragMixin):
